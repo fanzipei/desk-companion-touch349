@@ -1,0 +1,20 @@
+{
+  "font": "Noto Sans CJK SC Regular",
+  "license": "SIL OFL 1.1",
+  "source": "https://github.com/notofonts/noto-cjk/tree/main/Sans/OTF/SimplifiedChinese",
+  "source_sha256": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+  "asset_sha256": "2dbe4c4beca82b1a98542c18362e08277b79a526a2c6eeda041658a09289dbf4",
+  "glyph_count": 44714,
+  "bytes": 2906266,
+  "native_sizes": [
+    12,
+    16
+  ],
+  "scaled_sizes": [
+    24,
+    32
+  ],
+  "format": "TFB1",
+  "pillow": "13.0.0",
+  "fonttools": "4.68.0"
+}

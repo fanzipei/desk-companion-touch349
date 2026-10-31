@@ -1,0 +1,4 @@
+bleak==3.0.2
+pystray==0.19.5
+Pillow>=12,<14
+qrcode>=8,<9

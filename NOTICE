@@ -1,0 +1,11 @@
+Desk Companion Touch349 / 桌面小伴侣触屏版
+Copyright 2026 fanzipei
+
+Original project code is licensed under the Apache License, Version 2.0.
+Third-party components retain their own copyright and license terms.
+See THIRD_PARTY_NOTICES.md, LICENSES/, and firmware/components/.
+
+This project adapts Waveshare's ESP32-S3-Touch-LCD-3.49 V2 board example,
+uses U8g2 and separately licensed WQY and Noto font data, and fetches
+managed ESP-IDF/LVGL components under their respective licenses.
+It is not affiliated with or endorsed by Waveshare or the font authors.
