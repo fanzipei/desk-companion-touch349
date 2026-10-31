@@ -63,7 +63,7 @@ class NewsStageTests(unittest.TestCase):
         self.assertEqual(calls,['configured','ollama'])
         self.r.ai.complete_text.assert_not_called()
         self.assertEqual(self.repo.news_packet(),before)
-        status=json.loads((Path(self.temp.name)/'news-recommendation-status.json').read_text())
+        status=json.loads((Path(self.temp.name)/'news-recommendation-status.json').read_text(encoding='utf8'))
         self.assertEqual(status['stage'],'translating')
 
     def test_each_stage_can_be_switched_and_brief_cache_tracks_its_model(self):

@@ -63,7 +63,7 @@ class NewsApiRecoveryTests(unittest.TestCase):
             recommender.select=Mock(side_effect=TimeoutError("接口响应超时"))
             previous=repo.snapshot()["news"]
             with self.assertRaises(TimeoutError):recommender.run_cycle()
-            report=json.loads((root/"news-recommendation-status.json").read_text())
+            report=json.loads((root/"news-recommendation-status.json").read_text(encoding='utf8'))
             self.assertEqual(report["state"],"error");self.assertEqual(report["stage"],"selecting")
             self.assertEqual(report["updated"],100);self.assertEqual(report["published"],4)
             self.assertEqual(repo.snapshot()["news"],previous)
