@@ -1,5 +1,5 @@
 # Copyright 2026 fanzipei. SPDX-License-Identifier: Apache-2.0
-"""News model adapter: existing API, native Ollama, and local OpenAI servers."""
+"""News model adapter: existing API, Ollama, Strata, and local OpenAI servers."""
 import json
 import re
 from urllib.error import HTTPError, URLError
@@ -74,7 +74,7 @@ class NewsModelClient:
             raise ValueError("本地模型返回格式不兼容。") from None
 
     def models(self, config):
-        if not is_local(config):raise ValueError("读取列表仅用于 Ollama 或本地兼容服务。")
+        if not is_local(config):raise ValueError("读取列表仅用于 Ollama、Strata 或本地兼容服务。")
         validate(config)
         ollama=config["news_model_provider"]=="ollama"
         result=self._request(config,"/api/tags" if ollama else "/models",timeout=10)

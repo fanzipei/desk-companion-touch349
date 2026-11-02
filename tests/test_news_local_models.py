@@ -50,10 +50,28 @@ class LocalServer:
     def __exit__(self,*args):self.server.shutdown();self.server.server_close();self.thread.join(2)
     def config(self,provider='ollama'):
         return {**DEFAULTS,'news_model_provider':provider,'news_ollama_url':self.url,'news_ollama_model':'test-local:latest',
-                'news_local_url':self.url+'/v1','news_local_model':'test-local'}
+                'news_local_url':self.url+'/v1','news_local_model':'test-local',
+                'news_strata_url':self.url+'/v1','news_strata_model':'test-local'}
 
 
 class LocalConfigurationTests(unittest.TestCase):
+    def test_strata_profile_and_stage_routes_round_trip_independently(self):
+        from pc.news_model_config import stage_config, validate_routes, model_name
+        with tempfile.TemporaryDirectory() as directory:
+            repo=Repository(directory)
+            repo.configure(news_translation_provider='strata',news_brief_provider='strata',
+                           news_recommendation_provider='configured',news_learning_provider='configured',
+                           news_strata_model='strata-model',news_local_model='unsloth-model')
+            config=Repository(directory).snapshot()['config']
+            validate_routes(config,require_model=True)
+            self.assertEqual(model_name(stage_config(config,'brief')),'strata-model')
+            self.assertEqual(stage_config(config,'learning')['news_model_provider'],'configured')
+            self.assertEqual(config['news_local_model'],'unsloth-model')
+            strata=stage_config(config,'brief')
+            self.assertEqual(local_base(strata),'http://127.0.0.1:8080/v1')
+            self.assertEqual(local_base({**strata,'news_strata_url':'http://localhost:8080/v1/models'}),'http://localhost:8080/v1')
+            self.assertNotEqual(model_signature(config),model_signature({**config,'news_strata_model':'other'}))
+
     def test_old_configuration_remains_cloud_and_local_profiles_round_trip(self):
         with tempfile.TemporaryDirectory() as directory:
             repo=Repository(directory);self.assertEqual(repo.snapshot()['config']['news_model_provider'],'configured')
@@ -83,6 +101,23 @@ class LocalConfigurationTests(unittest.TestCase):
 
 
 class LocalProtocolTests(unittest.TestCase):
+    def test_strata_uses_openai_protocol_without_other_provider_credentials(self):
+        with tempfile.TemporaryDirectory() as directory,LocalServer() as server:
+            cloud=Mock();cloud.load.side_effect=AssertionError('cloud credential leaked')
+            keys=Mock();keys.load.side_effect=AssertionError('Unsloth credential leaked to Strata')
+            client=NewsModelClient(cloud,directory,local_keys=keys);config=server.config('strata')
+            self.assertEqual(client.models(config),['test-local'])
+            self.assertIn('通过',client.verify(config))
+            self.assertEqual(client.complete_text(config,'简讯','正文'),BRIEF)
+            self.assertEqual([r[0] for r in server.requests],['/v1/models','/v1/chat/completions','/v1/chat/completions'])
+            self.assertTrue(all('Authorization' not in r[2] for r in server.requests))
+            client.cloud.complete=Mock(side_effect=AssertionError('unexpected paid request'))
+            from urllib.error import URLError
+            with patch('pc.news_model.build_opener') as opener:
+                opener.return_value.open.side_effect=URLError(ConnectionRefusedError())
+                with self.assertRaisesRegex(ValueError,'无法连接'):client.complete(config,'s','u')
+            client.cloud.complete.assert_not_called()
+
     def test_ollama_native_json_text_and_models_without_cloud_key_or_proxy(self):
         with tempfile.TemporaryDirectory() as directory,LocalServer() as server:
             cloud_keys=Mock();cloud_keys.load.side_effect=AssertionError('cloud key must not be read')
@@ -130,7 +165,7 @@ class LocalProtocolTests(unittest.TestCase):
             client.cloud.complete.assert_not_called()
 
     def test_real_pipeline_uses_local_model_for_learning_filtering_and_article_brief(self):
-        for provider in ('ollama','local_openai'):
+        for provider in ('ollama','strata','local_openai'):
             with self.subTest(provider=provider),tempfile.TemporaryDirectory() as directory,LocalServer() as server:
                 repo=Repository(directory);repo.configure(**server.config(provider),news_personalized=True,news_limit=2)
                 recommender=NewsRecommender(repo)

@@ -248,6 +248,7 @@ class SettingsWindow:
         self.news_model_panels={}
         for provider,url_key,model_key,hint in (
             ("ollama","news_ollama_url","news_ollama_model","Ollama 服务地址，通常为 http://127.0.0.1:11434"),
+            ("strata","news_strata_url","news_strata_model","Strata 推理 API，例如 http://127.0.0.1:8080/v1；先在 Strata 中加载模型。"),
             ("local_openai","news_local_url","news_local_model","填写服务实际提供的兼容 API 地址，例如 http://127.0.0.1:8001/v1")):
             panel=tk.Frame(section,bg=ui.BG);self.news_model_panels[provider]=panel
             self.field(panel,url_key,"本地服务地址",hint)
@@ -255,7 +256,7 @@ class SettingsWindow:
             model.configure(state="normal")
             if provider=="ollama":
                 self.field(panel,"news_ollama_context","上下文长度","仅 Ollama 生效；增大会增加内存 / 显存占用。",maximum=131072)
-            else:
+            elif provider=="local_openai":
                 self.field(panel,"news_local_api_key","本地服务密钥","可选，留空保持已保存密钥；与原 API 密钥分开保存。",secret=True)
         self.news_local_options=tk.Frame(section,bg=ui.BG)
         self.field(self.news_local_options,"news_model_timeout","等待时间（秒）","本地模型首次加载可能较慢，范围 30–1800 秒。",maximum=1800)
@@ -275,7 +276,7 @@ class SettingsWindow:
             for key in STAGE_KEYS:
                 value={label:name for name,label in STAGE_PROVIDERS.items()}[self.app.settings[key].get()]
                 used.add(provider if value=='default' else value)
-            for local in ('ollama','local_openai'):
+            for local in ('ollama','strata','local_openai'):
                 if local in used:self.news_model_panels[local].pack(fill="x")
             if used-{'configured'}:
                 self.news_local_options.pack(fill="x")
@@ -380,7 +381,8 @@ class SettingsWindow:
         if signature!=settings_signature(config):
             self.news_model_status.set("配置已修改，请重新读取或测试。");return
         if kind=="news_models":
-            key="news_ollama_model" if config["news_model_provider"]=="ollama" else "news_local_model"
+            from .news_model_config import model_key
+            key=model_key(config)
             self.fields[key].configure(values=result)
             if result and not self.app.settings[key].get().strip():self.app.settings[key].set(result[0])
             self.news_model_status.set(f"读取到 {len(result)} 个模型。选择模型后测试并保存。" if result else "服务已连接，暂未发现模型；请先在本地服务中加载模型。")

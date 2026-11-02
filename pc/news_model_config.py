@@ -5,7 +5,7 @@ import ipaddress
 import json
 from urllib.parse import urlsplit
 
-PROVIDERS = {"configured":"现有模型 API", "ollama":"Ollama", "local_openai":"Unsloth / 本地兼容服务"}
+PROVIDERS = {"configured":"现有模型 API", "ollama":"Ollama", "strata":"Strata（本地）", "local_openai":"Unsloth / 本地兼容服务"}
 STAGES = {"recommendation":"新闻推荐", "translation":"标题翻译", "brief":"正文简讯", "learning":"偏好学习"}
 STAGE_PROVIDERS = {"default":"沿用默认新闻模型", **PROVIDERS}
 STAGE_KEYS = tuple(f"news_{stage}_provider" for stage in STAGES)
@@ -16,6 +16,8 @@ DEFAULTS = {
     "news_ollama_model":"",
     "news_local_url":"http://127.0.0.1:8001/v1",
     "news_local_model":"",
+    "news_strata_url":"http://127.0.0.1:8080/v1",
+    "news_strata_model":"",
     "news_model_timeout":300,
     "news_ollama_context":16384,
 }
@@ -47,7 +49,7 @@ def uses_cloud(config):
 
 def local_base(config):
     provider = config.get("news_model_provider", "configured")
-    key = "news_ollama_url" if provider == "ollama" else "news_local_url"
+    key = {"ollama":"news_ollama_url", "strata":"news_strata_url"}.get(provider,"news_local_url")
     value = config.get(key, DEFAULTS[key]).strip().rstrip("/")
     p = urlsplit(value)
     try:
@@ -75,10 +77,13 @@ def local_base(config):
     return value if urlsplit(value).path else value+"/v1"
 
 
-def model_name(config):
+def model_key(config):
     provider = config.get("news_model_provider", "configured")
-    key = {"configured":"llm_model", "ollama":"news_ollama_model", "local_openai":"news_local_model"}[provider]
-    return config.get(key, "").strip()
+    return {"configured":"llm_model", "ollama":"news_ollama_model", "strata":"news_strata_model", "local_openai":"news_local_model"}[provider]
+
+
+def model_name(config):
+    return config.get(model_key(config), "").strip()
 
 
 def validate(config, require_model=False):
